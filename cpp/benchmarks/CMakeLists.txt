@@ -9,8 +9,14 @@
 option(DISABLE_DEPRECATION_WARNING "Disable warnings generated from deprecated declarations." OFF)
 option(PER_THREAD_DEFAULT_STREAM "Build with per-thread default stream" OFF)
 
-set(RMM_BENCHMARKS_CXX_FLAGS -Wall -Werror -Wextra -Wno-unknown-pragmas)
-set(RMM_BENCHMARKS_CUDA_FLAGS -Werror=all-warnings -Xcompiler=-Wall,-Werror,-Wextra)
+set(RMM_BENCHMARKS_CXX_FLAGS
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Werror;-Wextra;-Wno-unknown-pragmas>
+    $<$<CXX_COMPILER_ID:MSVC>:/W4;/WX>)
+set(RMM_BENCHMARKS_CUDA_FLAGS -Werror=all-warnings
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-Xcompiler=-Wall,-Werror,-Wextra>
+    $<$<CXX_COMPILER_ID:MSVC>:-Xcompiler=/W4,/WX>)
+
+find_package(Threads REQUIRED)
 
 if(PER_THREAD_DEFAULT_STREAM)
   message(STATUS "RMM: Building benchmarks with per-thread default stream")
@@ -32,9 +38,11 @@ function(ConfigureBench BENCH_NAME)
                CUDA_STANDARD 20
                CUDA_STANDARD_REQUIRED ON
                RUNTIME_OUTPUT_DIRECTORY "$<BUILD_INTERFACE:${RMM_BINARY_DIR}/gbenchmarks>"
-               CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
-               INSTALL_RPATH "\$ORIGIN/../../../lib")
-  target_link_libraries(${BENCH_NAME} PRIVATE benchmark::benchmark pthread rmm)
+               CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}")
+  if(NOT WIN32)
+    set_target_properties(${BENCH_NAME} PROPERTIES INSTALL_RPATH "\$ORIGIN/../../../lib")
+  endif()
+  target_link_libraries(${BENCH_NAME} PRIVATE benchmark::benchmark Threads::Threads rmm)
   target_compile_definitions(
     ${BENCH_NAME} PUBLIC "RMM_LOG_ACTIVE_LEVEL=RAPIDS_LOGGER_LOG_LEVEL_${RMM_LOGGING_LEVEL}")
 
@@ -48,9 +56,12 @@ function(ConfigureBench BENCH_NAME)
 
   if(DISABLE_DEPRECATION_WARNING)
     target_compile_options(
-      ${BENCH_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-Wno-deprecated-declarations>)
-    target_compile_options(${BENCH_NAME}
-                           PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-declarations>)
+      ${BENCH_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:
+        $<$<CXX_COMPILER_ID:GNU,Clang>:-Xcompiler=-Wno-deprecated-declarations>
+        $<$<CXX_COMPILER_ID:MSVC>:-Xcompiler=/wd4996>>)
+    target_compile_options(${BENCH_NAME} PUBLIC
+      $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:GNU,Clang>>:-Wno-deprecated-declarations>
+      $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>:/wd4996>)
   endif()
 
   install(

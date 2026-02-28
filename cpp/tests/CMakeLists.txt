@@ -9,8 +9,14 @@
 option(DISABLE_DEPRECATION_WARNING "Disable warnings generated from deprecated declarations." OFF)
 option(CODE_COVERAGE "Enable generating code coverage with gcov." OFF)
 
-set(RMM_TESTS_CXX_FLAGS -Wall -Werror -Wextra -Wno-unknown-pragmas)
-set(RMM_TESTS_CUDA_FLAGS -Werror=all-warnings -Xcompiler=-Wall,-Werror,-Wextra)
+set(RMM_TESTS_CXX_FLAGS
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Werror;-Wextra;-Wno-unknown-pragmas>
+    $<$<CXX_COMPILER_ID:MSVC>:/W4;/WX;/Zc:preprocessor>)
+set(RMM_TESTS_CUDA_FLAGS -Werror=all-warnings
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-Xcompiler=-Wall,-Werror,-Wextra>
+    $<$<CXX_COMPILER_ID:MSVC>:-Xcompiler=/W4,/WX,/Zc:preprocessor,/wd4819;--diag-suppress=177>)
+
+find_package(Threads REQUIRED)
 
 include(rapids-test)
 rapids_test_init()
@@ -24,28 +30,34 @@ function(ConfigureTestInternal TEST_NAME)
   add_executable(${TEST_NAME} ${ARGN})
   target_include_directories(${TEST_NAME} PRIVATE "$<BUILD_INTERFACE:${RMM_SOURCE_DIR}>")
   target_link_libraries(
-    ${TEST_NAME} PRIVATE GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main pthread rmm
-                         $<TARGET_NAME_IF_EXISTS:conda_env>)
+    ${TEST_NAME} PRIVATE GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main
+                         Threads::Threads rmm $<TARGET_NAME_IF_EXISTS:conda_env>)
   set_target_properties(
     ${TEST_NAME}
     PROPERTIES POSITION_INDEPENDENT_CODE ON
                RUNTIME_OUTPUT_DIRECTORY "$<BUILD_INTERFACE:${RMM_BINARY_DIR}/gtests>"
                CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
-               INSTALL_RPATH "\$ORIGIN/../../../lib"
                CXX_STANDARD 20
                CXX_STANDARD_REQUIRED ON
                CUDA_STANDARD 20
                CUDA_STANDARD_REQUIRED ON)
+  if(NOT WIN32)
+    set_target_properties(${TEST_NAME} PROPERTIES INSTALL_RPATH "\$ORIGIN/../../../lib")
+  endif()
   target_compile_definitions(
-    ${TEST_NAME} PUBLIC "RMM_LOG_ACTIVE_LEVEL=RAPIDS_LOGGER_LOG_LEVEL_${RMM_LOGGING_LEVEL}")
+    ${TEST_NAME} PUBLIC "RMM_LOG_ACTIVE_LEVEL=RAPIDS_LOGGER_LOG_LEVEL_${RMM_LOGGING_LEVEL}"
+                 PRIVATE $<$<CXX_COMPILER_ID:MSVC>:NOMINMAX>)
   target_compile_options(${TEST_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${RMM_TESTS_CXX_FLAGS}>"
                                               "$<$<COMPILE_LANGUAGE:CUDA>:${RMM_TESTS_CUDA_FLAGS}>")
 
   if(DISABLE_DEPRECATION_WARNING)
     target_compile_options(
-      ${TEST_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-Wno-deprecated-declarations>)
-    target_compile_options(${TEST_NAME}
-                           PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-declarations>)
+      ${TEST_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:
+        $<$<CXX_COMPILER_ID:GNU,Clang>:-Xcompiler=-Wno-deprecated-declarations>
+        $<$<CXX_COMPILER_ID:MSVC>:-Xcompiler=/wd4996>>)
+    target_compile_options(${TEST_NAME} PUBLIC
+      $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:GNU,Clang>>:-Wno-deprecated-declarations>
+      $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>:/wd4996>)
   endif()
 
   if(CODE_COVERAGE)

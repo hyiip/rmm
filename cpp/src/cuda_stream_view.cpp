@@ -51,7 +51,7 @@ void cuda_stream_view::synchronize_no_throw() const noexcept
 
 bool operator==(cuda_stream_view lhs, cuda_stream_view rhs) { return lhs.value() == rhs.value(); }
 
-bool operator!=(cuda_stream_view lhs, cuda_stream_view rhs) { return not(lhs == rhs); }
+bool operator!=(cuda_stream_view lhs, cuda_stream_view rhs) { return !(lhs == rhs); }
 
 std::ostream& operator<<(std::ostream& os, cuda_stream_view stream)
 {

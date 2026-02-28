@@ -1,0 +1,9 @@
+{
+  "packages": {
+    "rapids_logger": {
+      "version": "0.2.3",
+      "git_url": "https://github.com/hyiip/rapids-logger-windows.git",
+      "git_tag": "main"
+    }
+  }
+}

@@ -67,6 +67,7 @@ rapids_find_package(
 # * dependencies -----------------------------------------------------------------------------------
 
 # add third party dependencies using CPM
+set(RAPIDS_CMAKE_CPM_OVERRIDE_VERSION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/rapids-logger-override.json")
 rapids_cpm_init()
 
 include(${rapids-cmake-dir}/cpm/rapids_logger.cmake)
@@ -111,24 +112,34 @@ target_link_libraries(rmm PUBLIC CCCL::CCCL ${CMAKE_DL_LIBS} nvtx3::nvtx3-cpp
 
 set_target_properties(
   rmm
-  PROPERTIES BUILD_RPATH "\$ORIGIN"
-             INSTALL_RPATH "\$ORIGIN"
-             CXX_STANDARD 17
+  PROPERTIES CXX_STANDARD 17
              CXX_STANDARD_REQUIRED ON
              CXX_VISIBILITY_PRESET hidden
              POSITION_INDEPENDENT_CODE ON
              INTERFACE_POSITION_INDEPENDENT_CODE ON)
+
+if(NOT WIN32)
+  set_target_properties(rmm PROPERTIES BUILD_RPATH "\$ORIGIN" INSTALL_RPATH "\$ORIGIN")
+endif()
+
+if(WIN32)
+  set_target_properties(rmm PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
 
 # Enable NVTX if necessary
 if(RMM_NVTX)
   target_compile_definitions(rmm PUBLIC RMM_NVTX)
 endif()
 
-set(RMM_CXX_FLAGS -Wall -Werror -Wextra -Wno-unknown-pragmas -Wno-error=deprecated-declarations)
+set(RMM_CXX_FLAGS
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Werror;-Wextra;-Wno-unknown-pragmas;-Wno-error=deprecated-declarations>
+    $<$<CXX_COMPILER_ID:MSVC>:/W4;/WX;/Zc:preprocessor>)
 set(RMM_CUDA_FLAGS -Werror=all-warnings
-                   -Xcompiler=-Wall,-Werror,-Wextra,-Wno-error=deprecated-declarations)
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-Xcompiler=-Wall,-Werror,-Wextra,-Wno-error=deprecated-declarations>
+    $<$<CXX_COMPILER_ID:MSVC>:-Xcompiler=/W4,/WX,/Zc:preprocessor>)
 target_compile_options(rmm PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${RMM_CXX_FLAGS}>"
                                    "$<$<COMPILE_LANGUAGE:CUDA>:${RMM_CUDA_FLAGS}>")
+target_compile_definitions(rmm PRIVATE $<$<CXX_COMPILER_ID:MSVC>:NOMINMAX>)
 
 # ##################################################################################################
 # * tests and benchmarks ---------------------------------------------------------------------------
