@@ -12,6 +12,7 @@ else:
 
     if is_available():
         import pathlib
+        import sys
 
         # To support editable installs, we cannot search for the compiled torch
         # allocator .so relative to the current file because the current file
@@ -20,7 +21,8 @@ else:
         # package. We use the librmm._logger module because it is small.
         from rmm.librmm import _logger
 
-        sofile = pathlib.Path(_logger.__file__).parent / "_torch_allocator.so"
+        _ext = ".dll" if sys.platform == "win32" else ".so"
+        sofile = pathlib.Path(_logger.__file__).parent / f"_torch_allocator{_ext}"
         rmm_torch_allocator = CUDAPluggableAllocator(
             str(sofile.absolute()),
             alloc_fn_name="allocate",

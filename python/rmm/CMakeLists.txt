@@ -16,6 +16,13 @@ project(
 
 find_package(rmm "${RAPIDS_VERSION}" REQUIRED)
 
+# MSVC defaults to C++14; CCCL headers (pulled in via rmm::rmm) require C++17.
+set(CMAKE_CXX_STANDARD 17)
+
+if(MSVC)
+  add_compile_definitions(NOMINMAX)
+endif()
+
 include(rapids-cython-core)
 rapids_cython_init()
 

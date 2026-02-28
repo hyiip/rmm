@@ -4,6 +4,7 @@
 
 import ctypes
 import os
+import sys
 
 # Loading with RTLD_LOCAL adds the library itself to the loader's
 # loaded library cache without loading any symbols into the global
@@ -26,11 +27,23 @@ def _load_wheel_installation(soname: str):
 
     Returns ``None`` if the library cannot be loaded.
     """
+    libdir = "bin" if sys.platform == "win32" else "lib64"
     if os.path.isfile(
-        lib := os.path.join(os.path.dirname(__file__), "lib64", soname)
+        lib := os.path.join(os.path.dirname(__file__), libdir, soname)
     ):
         return ctypes.CDLL(lib, PREFERRED_LOAD_FLAG)
     return None
+
+
+def _add_dll_directories():
+    """On Windows, add DLL directories so .pyd files can find native libraries."""
+    if sys.platform != "win32":
+        return
+    pkg_dir = os.path.dirname(__file__)
+    for subdir in ("bin", "lib"):
+        dll_dir = os.path.join(pkg_dir, subdir)
+        if os.path.isdir(dll_dir):
+            os.add_dll_directory(dll_dir)
 
 
 def load_library():
@@ -48,12 +61,16 @@ def load_library():
         # paths.
         pass
 
+    # On Windows, register DLL directories so that extension modules (.pyd)
+    # can resolve their native library dependencies (rmm.dll, etc.).
+    _add_dll_directories()
+
     prefer_system_installation = (
         os.getenv("RAPIDS_LIBRMM_PREFER_SYSTEM_LIBRARY", "false").lower()
         != "false"
     )
 
-    soname = "librmm.so"
+    soname = "rmm.dll" if sys.platform == "win32" else "librmm.so"
     librmm_lib = None
     if prefer_system_installation:
         # Prefer a system library if one is present to

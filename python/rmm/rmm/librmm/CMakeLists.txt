@@ -20,8 +20,11 @@ foreach(_cython_target IN LISTS RAPIDS_CYTHON_CREATED_TARGETS)
 endforeach()
 
 add_library(_torch_allocator SHARED _torch_allocator.cpp)
-# Want the output to be called _torch_allocator.so
-set_target_properties(_torch_allocator PROPERTIES PREFIX "" SUFFIX ".so")
+set_target_properties(_torch_allocator PROPERTIES PREFIX "")
+if(NOT WIN32)
+  # Want the output to be called _torch_allocator.so
+  set_target_properties(_torch_allocator PROPERTIES SUFFIX ".so")
+endif()
 target_link_libraries(_torch_allocator PRIVATE rmm::rmm)
 cmake_path(RELATIVE_PATH CMAKE_CURRENT_SOURCE_DIR BASE_DIRECTORY "${PROJECT_SOURCE_DIR}"
            OUTPUT_VARIABLE _torch_allocator_location)

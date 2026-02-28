@@ -32,6 +32,7 @@ def test_rmm_csv_log(dtype, nelem, alloc, tmpdir):
             csv = f.read()
             assert csv.find(b"Time,Action,Pointer,Size,Stream") >= 0
     finally:
+        rmm.disable_logging()
         os.remove(fname)
 
 
@@ -55,9 +56,8 @@ def test_rmm_enable_disable_logging(dtype, nelem, alloc, tmpdir):
             csv = f.read()
             assert csv.find(b"Time,Action,Pointer,Size,Stream") >= 0
     finally:
+        rmm.disable_logging()
         os.remove(fname)
-
-    rmm.disable_logging()
 
 
 @pytest.mark.parametrize("level", level_enum)
