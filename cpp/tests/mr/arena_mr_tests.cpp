@@ -17,7 +17,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <sys/stat.h>
+#include <filesystem>
 
 #include <cstddef>
 #include <limits>
@@ -486,31 +486,33 @@ TEST_F(ArenaTest, SizeSmallerThanSuperblockSize)  // NOLINT
 
 TEST_F(ArenaTest, AllocateNinetyPercent)  // NOLINT
 {
-  EXPECT_NO_THROW([]() {  // NOLINT(cppcoreguidelines-avoid-goto)
+  auto test = []() {
     auto const ninety_percent = rmm::percent_of_free_device_memory(90);
     arena_mr mr(rmm::mr::get_current_device_resource_ref(), ninety_percent);
-  }());
+  };
+  EXPECT_NO_THROW(test());  // NOLINT(cppcoreguidelines-avoid-goto)
 }
 
 TEST_F(ArenaTest, SmallMediumLarge)  // NOLINT
 {
-  EXPECT_NO_THROW([]() {  // NOLINT(cppcoreguidelines-avoid-goto)
+  auto test = []() {
     arena_mr mr(rmm::mr::get_current_device_resource_ref());
-    auto* small     = mr.allocate_sync(256);
-    auto* medium    = mr.allocate_sync(64_MiB);
+    auto* ptr_s     = mr.allocate_sync(256);
+    auto* ptr_m     = mr.allocate_sync(64_MiB);
     auto const free = rmm::available_device_memory().first;
-    auto* large     = mr.allocate_sync(free / 3);
-    mr.deallocate_sync(small, 256);
-    mr.deallocate_sync(medium, 64_MiB);
-    mr.deallocate_sync(large, free / 3);
-  }());
+    auto* ptr_l     = mr.allocate_sync(free / 3);
+    mr.deallocate_sync(ptr_s, 256);
+    mr.deallocate_sync(ptr_m, 64_MiB);
+    mr.deallocate_sync(ptr_l, free / 3);
+  };
+  EXPECT_NO_THROW(test());  // NOLINT(cppcoreguidelines-avoid-goto)
 }
 
 TEST_F(ArenaTest, Defragment)  // NOLINT
 {
-  EXPECT_NO_THROW([]() {  // NOLINT(cppcoreguidelines-avoid-goto)
-    auto const arena_size = superblock::minimum_size * 4;
-    arena_mr mr(rmm::mr::get_current_device_resource_ref(), arena_size);
+  auto test = []() {
+    auto const defrag_arena_size = superblock::minimum_size * 4;
+    arena_mr mr(rmm::mr::get_current_device_resource_ref(), defrag_arena_size);
     std::vector<std::thread> threads;
     std::size_t num_threads{4};
     threads.reserve(num_threads);
@@ -525,9 +527,10 @@ TEST_F(ArenaTest, Defragment)  // NOLINT
       thread.join();
     }
 
-    auto* ptr = mr.allocate_sync(arena_size);
-    mr.deallocate_sync(ptr, arena_size);
-  }());
+    auto* ptr = mr.allocate_sync(defrag_arena_size);
+    mr.deallocate_sync(ptr, defrag_arena_size);
+  };
+  EXPECT_NO_THROW(test());  // NOLINT(cppcoreguidelines-avoid-goto)
 }
 
 TEST_F(ArenaTest, PerThreadToStreamDealloc)  // NOLINT
@@ -536,8 +539,8 @@ TEST_F(ArenaTest, PerThreadToStreamDealloc)  // NOLINT
   // it was originally allocated in a superblock that was in a thread
   // arena that then moved to global arena during a defragmentation
   // and then moved to a stream arena.
-  auto const arena_size = superblock::minimum_size * 2;
-  arena_mr mr(rmm::mr::get_current_device_resource_ref(), arena_size);
+  auto const test_arena_size = superblock::minimum_size * 2;
+  arena_mr mr(rmm::mr::get_current_device_resource_ref(), test_arena_size);
   // Create an allocation from a per thread arena
   void* thread_ptr = mr.allocate(rmm::cuda_stream_per_thread, 256);
   // Create an allocation in a stream arena to force global arena
@@ -584,9 +587,8 @@ TEST_F(ArenaTest, DumpLogOnFailure)  // NOLINT
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_THROW(mr.allocate_sync(8_MiB), rmm::out_of_memory);
 
-  struct stat file_status{};
-  EXPECT_EQ(stat("rmm_arena_memory_dump.log", &file_status), 0);
-  EXPECT_GE(file_status.st_size, 0);
+  EXPECT_TRUE(std::filesystem::exists("rmm_arena_memory_dump.log"));
+  EXPECT_GE(std::filesystem::file_size("rmm_arena_memory_dump.log"), 0);
 }
 
 }  // namespace

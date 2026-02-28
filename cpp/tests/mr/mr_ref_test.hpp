@@ -423,8 +423,8 @@ inline auto make_binning()
   auto pool = make_pool();
   // Add a binning_memory_resource with fixed-size bins of sizes 256, 512, 1024, 2048 and 4096KiB
   // Larger allocations will use the pool resource
-  auto const bin_range_start{18};
-  auto const bin_range_end{22};
+  int8_t const bin_range_start{18};
+  int8_t const bin_range_end{22};
 
   auto mr = rmm::mr::make_owning_wrapper<rmm::mr::binning_memory_resource>(
     pool, bin_range_start, bin_range_end);

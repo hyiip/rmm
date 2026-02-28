@@ -19,7 +19,7 @@ struct CudaStreamPoolTest : public ::testing::Test {
 
 TEST_F(CudaStreamPoolTest, ZeroSizePoolException)
 {
-  EXPECT_THROW(rmm::cuda_stream_pool pool{0}, rmm::logic_error);
+  EXPECT_THROW(rmm::cuda_stream_pool p{0}, rmm::logic_error);
 }
 
 TEST_F(CudaStreamPoolTest, Unequal)
@@ -83,9 +83,9 @@ TEST_F(CudaStreamPoolTest, CreateDefault)
 
 TEST_F(CudaStreamPoolTest, CreateNonBlocking)
 {
-  rmm::cuda_stream_pool pool{2, rmm::cuda_stream::flags::non_blocking};
-  for (std::size_t i = 0; i < pool.get_pool_size(); i++) {
-    auto stream = pool.get_stream(i);
+  rmm::cuda_stream_pool nb_pool{2, rmm::cuda_stream::flags::non_blocking};
+  for (std::size_t i = 0; i < nb_pool.get_pool_size(); i++) {
+    auto stream = nb_pool.get_stream(i);
     unsigned int flags;
     RMM_CUDA_TRY(cudaStreamGetFlags(stream.value(), &flags));
     EXPECT_EQ(flags, cudaStreamNonBlocking);

@@ -81,7 +81,7 @@ class binning_memory_resource final : public device_memory_resource {
     : upstream_mr_{upstream_resource}
   {
     for (auto i = min_size_exponent; i <= max_size_exponent; i++) {
-      add_bin(1 << i);
+      add_bin(std::size_t{1} << i);
     }
   }
 
@@ -105,7 +105,7 @@ class binning_memory_resource final : public device_memory_resource {
     : upstream_mr_{to_device_async_resource_ref_checked(upstream_resource)}
   {
     for (auto i = min_size_exponent; i <= max_size_exponent; i++) {
-      add_bin(1 << i);
+      add_bin(std::size_t{1} << i);
     }
   }
 

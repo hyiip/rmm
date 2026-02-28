@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdio>
+#include <cstdlib>
 #include <initializer_list>
 #include <memory>
 #include <ostream>
@@ -215,10 +216,20 @@ class logging_resource_adaptor final : public device_memory_resource {
    */
   static std::string get_default_filename()
   {
+#ifdef _MSC_VER
+    char* filename = nullptr;
+    std::size_t len = 0;
+    _dupenv_s(&filename, &len, "RMM_LOG_FILE");
+#else
     auto* filename = std::getenv("RMM_LOG_FILE");
+#endif
     RMM_EXPECTS(filename != nullptr,
                 "RMM logging requested without an explicit file name, but RMM_LOG_FILE is unset");
-    return std::string{filename};
+    std::string result{filename};
+#ifdef _MSC_VER
+    std::free(filename);
+#endif
+    return result;
   }
 
  private:

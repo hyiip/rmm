@@ -157,7 +157,7 @@ class failure_callback_resource_adaptor final : public device_memory_resource {
       try {
         ret = get_upstream_resource().allocate(stream, bytes);
         break;
-      } catch (exception_type const& e) {
+      } catch (exception_type const&) {
         if (!callback_(bytes, callback_arg_)) { throw; }
       }
     }

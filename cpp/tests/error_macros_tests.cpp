@@ -3,6 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4127)  // conditional expression is constant (do-while(0) in macros)
+#endif
+
 #include <rmm/detail/error.hpp>
 #include <rmm/error.hpp>
 
@@ -10,6 +14,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <stdexcept>
 #include <string>
 #include <type_traits>

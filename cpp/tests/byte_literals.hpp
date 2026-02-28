@@ -7,11 +7,11 @@
 
 namespace rmm::test {
 
-constexpr auto kilo{long{1} << 10};
-constexpr auto mega{long{1} << 20};
-constexpr auto giga{long{1} << 30};
-constexpr auto tera{long{1} << 40};
-constexpr auto peta{long{1} << 50};
+constexpr auto kilo{1LL << 10};
+constexpr auto mega{1LL << 20};
+constexpr auto giga{1LL << 30};
+constexpr auto tera{1LL << 40};
+constexpr auto peta{1LL << 50};
 
 // user-defined Byte literals
 constexpr unsigned long long operator""_B(unsigned long long val) { return val; }

@@ -10,7 +10,9 @@
 
 #include <cuda_runtime_api.h>
 
+#ifndef _MSC_VER
 #include <dlfcn.h>
+#endif
 
 namespace RMM_NAMESPACE {
 namespace detail {
@@ -41,7 +43,7 @@ struct runtime_async_alloc {
       auto result = cudaDeviceGetAttribute(&cuda_pool_supported,
                                            cudaDevAttrMemoryPoolsSupported,
                                            rmm::get_current_cuda_device().value());
-      return result == cudaSuccess and cuda_pool_supported == 1;
+      return result == cudaSuccess && cuda_pool_supported == 1;
     }()};
     return driver_supports_pool;
   }
@@ -124,7 +126,7 @@ struct concurrent_managed_access {
       auto result                 = cudaDeviceGetAttribute(&concurrentManagedAccess,
                                            cudaDevAttrConcurrentManagedAccess,
                                            rmm::get_current_cuda_device().value());
-      return result == cudaSuccess and concurrentManagedAccess == 1;
+      return result == cudaSuccess && concurrentManagedAccess == 1;
     }()};
     return driver_supports_concurrent_managed_access;
   }
@@ -141,14 +143,14 @@ struct runtime_async_managed_alloc {
   {
     static auto supports_async_managed_pool{[] {
       // Concurrent managed access is required for async managed memory pools
-      if (not concurrent_managed_access::is_supported()) { return false; }
+      if (!concurrent_managed_access::is_supported()) { return false; }
       // CUDA 13.0 or higher is required for async managed memory pools
       int cuda_driver_version{};
       auto driver_result = cudaDriverGetVersion(&cuda_driver_version);
       int cuda_runtime_version{};
       auto runtime_result = cudaRuntimeGetVersion(&cuda_runtime_version);
-      return driver_result == cudaSuccess and runtime_result == cudaSuccess and
-             cuda_driver_version >= RMM_MIN_ASYNC_MANAGED_ALLOC_CUDA_VERSION and
+      return driver_result == cudaSuccess && runtime_result == cudaSuccess &&
+             cuda_driver_version >= RMM_MIN_ASYNC_MANAGED_ALLOC_CUDA_VERSION &&
              cuda_runtime_version >= RMM_MIN_ASYNC_MANAGED_ALLOC_CUDA_VERSION;
     }()};
     return supports_async_managed_pool;
@@ -167,7 +169,7 @@ struct device_integrated_memory {
       int integrated = 0;
       auto result    = cudaDeviceGetAttribute(
         &integrated, cudaDevAttrIntegrated, rmm::get_current_cuda_device().value());
-      return result == cudaSuccess and integrated == 1;
+      return result == cudaSuccess && integrated == 1;
     }()};
     return is_integrated;
   }

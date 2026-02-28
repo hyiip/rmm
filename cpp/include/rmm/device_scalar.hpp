@@ -215,7 +215,7 @@ class device_scalar {
    */
   void set_value_to_zero_async(cuda_stream_view stream)
   {
-    _storage.set_element_to_zero_async(value_type{0}, stream);
+    _storage.set_element_to_zero_async(0, stream);
   }
 
   /**

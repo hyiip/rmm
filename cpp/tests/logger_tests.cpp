@@ -21,6 +21,17 @@
 #include <string>
 #include <vector>
 
+#ifdef _MSC_VER
+#include <io.h>
+namespace {
+inline int setenv(char const* name, char const* value, int /*overwrite*/)
+{
+  return _putenv_s(name, value);
+}
+inline int unsetenv(char const* name) { return _putenv_s(name, ""); }
+}  // namespace
+#endif
+
 namespace rmm::test {
 namespace {
 
@@ -28,11 +39,20 @@ class raii_restore_env {
  public:
   raii_restore_env(char const* name) : name_(name)
   {
-    auto* const value_or_null = getenv(name);
+    char* value_or_null = nullptr;
+#ifdef _MSC_VER
+    size_t len = 0;
+    _dupenv_s(&value_or_null, &len, name);
+#else
+    value_or_null = getenv(name);
+#endif
     if (value_or_null != nullptr) {
       value_  = value_or_null;
       is_set_ = true;
     }
+#ifdef _MSC_VER
+    std::free(value_or_null);
+#endif
   }
 
   ~raii_restore_env()
@@ -60,9 +80,15 @@ class raii_temp_directory {
   raii_temp_directory()
   {
     std::string random_path{std::filesystem::temp_directory_path().string()};
+#ifdef _MSC_VER
+    random_path += "\\rmm_XXXXXX";
+    _mktemp_s(random_path.data(), random_path.size() + 1);
+    std::filesystem::create_directory(random_path);
+#else
     random_path += "/rmm_XXXXXX";
     auto const ptr = mkdtemp(const_cast<char*>(random_path.data()));
     EXPECT_TRUE((ptr != nullptr));
+#endif
     directory_path_ = std::filesystem::path{random_path};
   }
   ~raii_temp_directory() { std::filesystem::remove_all(directory_path_); }
@@ -72,7 +98,7 @@ class raii_temp_directory {
 
   [[nodiscard]] std::string generate_path(std::string filename) const
   {
-    return directory_path_ / filename;
+    return (directory_path_ / filename).string();
   }
 
  private:
@@ -284,6 +310,7 @@ TEST(Adaptor, STDOUT)
 
   std::string output = testing::internal::GetCapturedStdout();
   std::string header = output.substr(0, output.find('\n'));
+  if (!header.empty() && header.back() == '\r') { header.pop_back(); }
   ASSERT_EQ(header, log_mr.header());
 }
 
@@ -302,6 +329,7 @@ TEST(Adaptor, STDERR)
 
   std::string output = testing::internal::GetCapturedStderr();
   std::string header = output.substr(0, output.find('\n'));
+  if (!header.empty() && header.back() == '\r') { header.pop_back(); }
   ASSERT_EQ(header, log_mr.header());
 }
 

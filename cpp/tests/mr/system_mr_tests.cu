@@ -39,8 +39,9 @@ __global__ void touch_memory_kernel(char* data, std::size_t size)
 
 void touch_on_gpu(void* ptr, std::size_t size)
 {
-  dim3 blockSize(256);
-  dim3 gridSize((size + blockSize.x - 1) / blockSize.x);
+  auto const block_size = 256U;
+  dim3 blockSize(block_size);
+  dim3 gridSize(static_cast<unsigned int>((size + block_size - 1) / block_size));
   touch_memory_kernel<<<gridSize, blockSize>>>(static_cast<char*>(ptr), size);
   cudaDeviceSynchronize();
 }

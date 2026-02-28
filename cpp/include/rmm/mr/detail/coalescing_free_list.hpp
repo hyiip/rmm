@@ -91,7 +91,7 @@ struct block : public block_base {
   [[nodiscard]] inline bool is_contiguous_before(block const& blk) const noexcept
   {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    return (pointer() + size() == blk.ptr) and not(blk.is_head());
+    return (pointer() + size() == blk.ptr) && !(blk.is_head());
   }
 
   /**

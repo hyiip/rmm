@@ -49,7 +49,7 @@ class stack_trace {
 #endif  // RMM_ENABLE_STACK_TRACES
   }
 
-  friend std::ostream& operator<<(std::ostream& os, const stack_trace& trace)
+  friend std::ostream& operator<<(std::ostream& os, [[maybe_unused]] const stack_trace& trace)
   {
 #if defined(RMM_ENABLE_STACK_TRACES)
     std::unique_ptr<char*, decltype(&::free)> strings(

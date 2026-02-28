@@ -42,9 +42,11 @@ struct DeviceScalarTest : public ::testing::Test {
             std::enable_if_t<(std::is_integral_v<U> && not std::is_same_v<U, bool>), bool> = true>
   U random_value()
   {
-    static std::uniform_int_distribution<U> distribution{std::numeric_limits<T>::lowest(),
-                                                         std::numeric_limits<T>::max()};
-    return distribution(generator);
+    using DistType = std::conditional_t<sizeof(U) < sizeof(short), short, U>;
+    static std::uniform_int_distribution<DistType> distribution{
+      static_cast<DistType>(std::numeric_limits<T>::lowest()),
+      static_cast<DistType>(std::numeric_limits<T>::max())};
+    return static_cast<U>(distribution(generator));
   }
 
   template <typename U = T, std::enable_if_t<std::is_floating_point_v<U>, bool> = true>
